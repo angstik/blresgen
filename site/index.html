@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BL RES GEN</title>
+<meta name="theme-color" content="#061635">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon-96.png" type="image/png" sizes="96x96">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --ink: #14161a; --muted: #5d6470; --line: #dde1e7;
+    --accent: #0030cd; --accent-ink: #ffffff; --warn: #a15c00; --warn-bg: #fff4e0;
+    --err: #b3261e; --ok: #1b6b3a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2ae; --line: #2c313a;
+      --accent: #6d8bff; --accent-ink: #0b0d12; --warn: #ffb85c; --warn-bg: #3a2a10;
+      --err: #ff8a80; --ok: #7bd99c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111317; --panel: #1a1d23; --ink: #e8eaee; --muted: #9aa2ae; --line: #2c313a;
+    --accent: #6d8bff; --accent-ink: #0b0d12; --warn: #ffb85c; --warn-bg: #3a2a10;
+    --err: #ff8a80; --ok: #7bd99c;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body.busy { cursor: progress; }
+  body.busy button:not(.stop-ok) { pointer-events: none; opacity: .6; }
+  header { padding: 20px 16px 8px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -.01em; }
+  header p { margin: 0; color: var(--muted); }
+  main { max-width: 1200px; margin: 0 auto; padding: 8px 16px 40px; display: grid; gap: 16px; }
+  main > *, .grid > * { min-width: 0; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  section, .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .drop { border: 1.5px dashed var(--line); border-radius: 8px; padding: 18px 12px; text-align: center; cursor: pointer;
+    color: var(--muted); transition: border-color .15s, background .15s; }
+  .drop:hover, .drop:focus-visible, .drop.over { border-color: var(--accent); color: var(--ink); outline: none; }
+  .drop strong { color: var(--ink); display: block; margin-bottom: 2px; }
+  .file { margin-top: 8px; font-size: 12px; color: var(--muted); word-break: break-all; }
+  .file span { color: var(--ink); }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  input[type=text], input[type=number] { width: 100%; padding: 7px 9px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); font: inherit; margin-top: 3px; }
+  .row2 { display: grid; grid-template-columns: 100px 1fr; gap: 8px; }
+  .check { display: flex; gap: 8px; align-items: center; color: var(--ink); font-size: 13px; }
+  details { margin-top: 6px; }
+  summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+  details input[type=file] { font-size: 12px; margin: 6px 0; max-width: 100%; }
+  button { font: inherit; border-radius: 6px; padding: 8px 14px; border: 1px solid var(--accent); cursor: pointer;
+    background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--accent); padding: 4px 9px; font-weight: 500; font-size: 12px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row2b { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+  select { width: 100%; padding: 5px 7px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 12px; margin-top: 3px; }
+  
+  #splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(120% 90% at 55% 12%, #003b60 0%, #001a32 55%, #050a20 100%); cursor: pointer; transition: opacity .45s ease; }
+  #splash.out { opacity: 0; pointer-events: none; }
+  #splash .splash-art { height: min(86vh, 844px); max-width: 100vw; object-fit: contain;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent), linear-gradient(to bottom, transparent, #000 8%, #000 85%, transparent);
+    -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent), linear-gradient(to bottom, transparent, #000 8%, #000 85%, transparent);
+    mask-composite: intersect; }
+  #splash .splash-ver { position: absolute; bottom: 7vh; left: 0; right: 0; text-align: center; color: #b1f4ff; font: 600 14px/1.4 system-ui, sans-serif; letter-spacing: .04em; }
+  #splash .splash-hint { position: absolute; bottom: 3.5vh; left: 0; right: 0; text-align: center; color: #6f8fb0; font: 12px system-ui, sans-serif; }
+  .titlebar .logo { border-radius: 8px; flex: none; }
+  .refs { grid-column: 1 / -1; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; }
+  .refs h2 { margin-bottom: 0; grid-column: 1 / -1; }
+  .ref { display: grid; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .ref h3 { margin: 0; font-size: 13px; }
+  .ref .file { margin-top: 0; }
+  .ref .actions { margin: 0; }
+  .ref textarea { width: 100%; box-sizing: border-box; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; resize: vertical; }
+  .drop.small { padding: 10px 8px; font-size: 12px; }
+  .drop.needed { border-color: var(--warn); background: var(--warn-bg); color: var(--ink); }
+  .ref-meta { font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+  .ref-meta:empty { display: none; }
+  .ref-meta .new { color: var(--warn, #b26b00); font-weight: 600; }
+  .ref-meta .same { color: var(--ok, #2e7d32); }
+  .ref-meta .bad { color: var(--err, #c62828); }
+  .hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  .meta { color: var(--muted); font-size: 13px; margin: 4px 0 10px; }
+  table.map td { white-space: normal; vertical-align: middle; } table.map select { min-width: 180px; }
+  td.ex { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap !important; color: var(--muted); }
+  td.ok { color: var(--ok); } td.bad { color: var(--err); font-weight: 600; } td.muted { color: var(--muted); }
+  .quality { margin: 12px 0 0; padding-left: 18px; font-size: 13px; display: grid; gap: 4px; }
+  .quality .ok { color: var(--ink); } .quality .warn { color: var(--warn); } .quality .bad { color: var(--err); } .quality .muted { color: var(--muted); }
+  .filters { display: grid; gap: 4px 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 8px; }
+  .opt { color: var(--muted); font-size: 11px; }
+  input[type=date] { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; margin-top: 3px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 999px; background: transparent; color: var(--ink); border: 1px solid var(--line); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  button.secondary { background: transparent; color: var(--accent); }
+  .titlebar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .version { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 500; padding: 3px 9px; border-radius: 999px;
+    background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .version:hover { color: var(--accent); border-color: var(--accent); }
+  .version[data-kind=update] { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
+  .version[data-kind=ok] { color: var(--ok); border-color: var(--ok); }
+  .update-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px;
+    border: 1px solid var(--warn); background: var(--warn-bg); border-radius: 8px; }
+  .update-bar span { margin-right: auto; }
+  button.linkish { all: unset; cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); text-underline-offset: 2px; }
+  button.linkish:hover, button.linkish:focus-visible { text-decoration-color: currentColor; outline: none; }
+  tr.clickable { cursor: pointer; } tr.clickable:hover td { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  dialog#viewer { width: min(1400px, calc(100vw - 16px)); max-height: calc(100vh - 16px); padding: 0; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--panel); color: var(--ink); display: none; }
+  dialog#viewer[open] { display: flex; flex-direction: column; }
+  dialog#viewer::backdrop { background: rgb(0 0 0 / .45); }
+  .v-top { padding: 14px 16px 6px; border-bottom: 1px solid var(--line); }
+  .v-headline { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .v-headline h2 { margin: 0; text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--ink); }
+  .v-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .v-tools input[type=search] { flex: 1 1 220px; padding: 6px 9px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+  .v-tools select { width: auto; margin: 0 0 0 4px; }
+  label.inline { display: inline-flex; align-items: center; margin: 0; }
+  .spacer { flex: 1; }
+  .v-grid { overflow: auto; flex: 1 1 auto; min-height: 30vh; }
+  dialog#viewer[open] { overflow: auto; }
+  table.csv { border-collapse: separate; border-spacing: 0; font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; width: max-content; min-width: 100%; }
+  table.csv th, table.csv td { padding: 5px 10px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+  table.csv thead th { position: sticky; top: 0; z-index: 2; background: var(--panel); font: 600 11px system-ui, sans-serif; letter-spacing: .02em; text-transform: none; color: var(--muted); }
+  table.csv .rn { position: sticky; left: 0; z-index: 1; background: var(--panel); color: var(--muted); text-align: right; }
+  table.csv thead .rn { z-index: 3; }
+  table.csv tbody tr { cursor: pointer; }
+  table.csv tbody tr.ctx td { color: var(--muted); }
+  table.csv tbody tr.target td { background: color-mix(in srgb, var(--accent) 9%, var(--panel)); }
+  table.csv tbody tr.target td.rn { color: var(--accent); font-weight: 700; }
+  table.csv tbody tr.gap td { border-top: 2px dashed var(--line); }
+  table.csv tbody tr:hover td { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); }
+  table.csv tbody tr.sel td { box-shadow: inset 0 1px 0 var(--accent), inset 0 -1px 0 var(--accent); }
+  table.csv th.hi { color: var(--warn); }
+  table.csv td.hi { color: var(--warn); font-weight: 700; background: color-mix(in srgb, var(--warn) 12%, var(--panel)); }
+  table.csv tbody tr.target td.hi { background: color-mix(in srgb, var(--warn) 20%, var(--panel)); }
+  table.csv td.num { text-align: right; }
+  .v-status { margin: 4px 0 0; font-size: 13px; min-height: 0; } .v-status:empty { display: none; }
+  .v-status[data-kind=err] { color: var(--err); } .v-status[data-kind=ok] { color: var(--ok); } .v-status[data-kind=info] { color: var(--muted); }
+  fieldset.wm { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px 10px; margin: 10px 0 0; }
+  fieldset.wm legend { padding: 0 4px; } fieldset.wm legend label { margin: 0; }
+  .wm-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .wm-row .grow { flex: 1; } .wm-row input[type=range] { flex: 1; min-width: 90px; accent-color: var(--accent); }
+  input[type=color] { width: 40px; height: 28px; padding: 0 2px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); margin-left: 6px; }
+  .j-foot { margin: 0; padding: 10px 16px; border-top: 1px solid var(--line); background: var(--bg); border-radius: 0 0 10px 10px; }
+  .j-foot:empty { display: none; } .j-foot[data-kind=warn] { color: var(--warn); }
+  .check-inline { gap: 6px; font-size: 12px; color: var(--ink); margin-right: 6px; }
+  td.remise { color: var(--accent); font-weight: 700; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .chain { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+  .chain .actions { margin-top: 6px; } .chain select { width: auto; margin-left: 6px; }
+  .struct-state { margin: 0 0 6px; font-size: 13px; } .struct-state[data-kind=ok] { color: var(--ok); }
+  .struct-state[data-kind=warn] { color: var(--warn); } .struct-state[data-kind=bad] { color: var(--err); font-weight: 600; }
+  td.slots select.mode { flex: 0 0 150px; min-width: 150px; font-weight: 600; }
+  .warnings { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+  .wf-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  label.wf { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--ink); }
+  label.wf.error { color: var(--err); } label.wf.warn { color: var(--warn); } label.wf .cnt { color: var(--muted); }
+  button.tiny { padding: 1px 7px; font-size: 11px; }
+  .quality .error { color: var(--err); } .quality .info { color: var(--muted); }
+  .refchk-ok { color: #1b8a2e; font-weight: 800; } .refchk-ko { color: #d00000; font-weight: 800; } a.refchk-ok, a.refchk-ko { text-decoration: none; } a.refchk-ok:hover, a.refchk-ko:hover { text-decoration: underline; } .refchk-na { color: var(--muted); }
+  .virt .refchk-ok, .virt .refchk-ko { margin-left: 6px; }
+  #inv-body tr.rt-red td { background: color-mix(in srgb, var(--t-red) 14%, transparent); }
+  #inv-body tr.rt-orange td { background: color-mix(in srgb, var(--t-orange) 14%, transparent); }
+  #inv-body tr.rt-yellow td { background: color-mix(in srgb, var(--t-yellow) 16%, transparent); }
+  #inv-body tr.rt-green td { background: color-mix(in srgb, var(--t-green) 12%, transparent); }
+  #inv-body tr.clickable:hover td { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  tr.failed td { background: color-mix(in srgb, var(--err) 16%, transparent); } td.tag.fail { color: var(--err); font-weight: 700; }
+  td.err { color: var(--err); font-weight: 700; background: color-mix(in srgb, var(--err) 18%, transparent); } .legend .sw.err { background: color-mix(in srgb, var(--err) 15%, transparent); border-color: var(--err); }
+  dialog#json-viewer { width: min(1000px, calc(100vw - 16px)); max-height: calc(100vh - 16px); padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); display: none; }
+  dialog#json-viewer[open] { display: flex; flex-direction: column; } dialog#json-viewer::backdrop, dialog#unlock::backdrop, dialog#case-confirm::backdrop, dialog#force-confirm::backdrop { background: rgb(0 0 0 / .45); }
+  .j-body { overflow: auto; padding: 10px 16px 16px; flex: 1 1 auto; }
+  .j-tree { font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .j-tree details > summary { cursor: pointer; list-style: none; } .j-tree details > summary::before { content: '▸ '; color: var(--muted); }
+  .j-tree details[open] > summary::before { content: '▾ '; } .jb { padding-left: 18px; border-left: 1px dashed var(--line); margin-left: 4px; }
+  .jl { padding-left: 14px; } .jk { color: var(--muted); } .jt { color: var(--muted); font-size: 11px; }
+  .jstr { color: var(--ok); } .jnum { color: var(--accent); } .jbool, .jnull { color: var(--warn); }
+  .jempty { color: var(--warn); background: var(--warn-bg); padding: 0 4px; border-radius: 3px; }
+  .j-raw { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 0; white-space: pre; }
+  .force-banner { margin: 8px 0; padding: 8px 12px; border-radius: 8px; border: 2px solid #6b40c7; background: rgb(107 64 199 / .1); color: #6b40c7; font-weight: 700; }
+  .mxbox { margin-top: 10px; }
+  .file.loaded > span { color: #1b6e2a; font-weight: 600; }
+  body.view-matching main > *:not(#matching-view):not(#status):not(#progress):not(#busy-anim) { display: none !important; }
+  .mx-help { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; margin-bottom: 12px; font-size: 13px; }
+  .mx-help ol { margin: 6px 0; padding-left: 20px; } .mx-files { font-size: 12px; margin: 6px 0 0; padding-left: 18px; }
+  .drop.disabled { opacity: .5; }
+  .mx-msg { list-style: none; margin: 10px 0 0; padding: 0; font-size: 13px; } .mx-msg li { padding: 5px 10px; border-radius: 6px; margin: 3px 0; font-weight: 600; }
+  .mx-msg li.ok { color: #1b6e2a; background: color-mix(in srgb, #1b8a2e 12%, transparent); } .mx-msg li.err { color: #b00000; background: color-mix(in srgb, #d00000 12%, transparent); }
+  .mx-gaps { border: 2px solid var(--t-red); background: color-mix(in srgb, var(--t-red) 10%, transparent); color: var(--t-red); border-radius: 8px; padding: 8px 12px; margin: 10px 0; font-size: 13px; }
+  .mx-gaps ul { margin: 4px 0 0; padding-left: 18px; color: var(--ink); }
+  .mx-synth { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 14px; font-size: 13px; }
+  .mx-k { border-left: 3px solid var(--line); padding: 2px 0 2px 8px; min-width: 0; }
+  .mx-kt { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .mx-kv { padding-left: 10px; overflow-wrap: anywhere; } .mx-kv strong { font-size: 15px; margin-right: 6px; } .mx-kv span { color: var(--muted); }
+  #matching-view { max-width: 100%; overflow-x: clip; } #matching-view .tablewrap { max-width: 100%; overflow-x: auto; }
+  .mx-help summary { cursor: pointer; font-weight: 700; } .mx-help[open] summary { margin-bottom: 6px; }
+  .mx-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin: 12px 0; }
+  .mx-chart { background: #fcfcfb; color: #0b0b0b; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .mx-chart.wide { grid-column: 1 / -1; } .mx-click { cursor: pointer; } .mx-click:hover { opacity: .8; }
+  .mx-chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 6px; padding: 3px 4px 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--ink); font-size: 12px; font-weight: 600; }
+  .mx-chart h4 { margin: 0 0 6px; font-size: 13px; } .mx-chart svg { width: 100%; height: auto; display: block; }
+  .mx-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: #52514e; margin-top: 6px; } .mx-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .mx-tip { position: fixed; pointer-events: none; background: #0b0b0b; color: #f0efec; font-size: 12px; padding: 4px 8px; border-radius: 6px; z-index: 50; white-space: nowrap; }
+  table.mx-table th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  table.mx-table td { font-size: 12px; white-space: nowrap; max-width: 26em; overflow: hidden; text-overflow: ellipsis; }
+  .mx-ok { color: #1b8a2e; font-weight: 800; } .mx-ko { color: #d00000; font-weight: 800; }
+  tr.mx-error td { background: color-mix(in srgb, var(--t-red) 8%, transparent); } tr.mx-none td { background: color-mix(in srgb, var(--t-orange) 8%, transparent); }
+  dialog#mx-ask { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); width: min(560px, calc(100vw - 16px)); }
+  dialog#mx-pdf { width: min(1100px, calc(100vw - 16px)); height: calc(100vh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); }
+  dialog#mx-pdf[open] { display: flex; flex-direction: column; } dialog#mx-pdf iframe { flex: 1; border: 0; width: 100%; background: #fff; }
+  dialog#mx-ask::backdrop, dialog#mx-pdf::backdrop { background: rgb(0 0 0 / .45); }
+  dialog#force-confirm { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); width: min(460px, calc(100vw - 16px)); }
+  dialog#case-confirm { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); width: min(460px, calc(100vw - 16px)); }
+  dialog#unlock { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); width: min(460px, calc(100vw - 16px)); }
+  .unlock h2 { margin: 0 0 6px; } .unlock input { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: 14px ui-monospace, monospace; margin: 8px 0; }
+  .v-pdf { border-top: 1px solid var(--line); padding: 10px 16px 14px; }
+  .v-pdf iframe { width: 100%; height: 55vh; border: 1px solid var(--line); border-radius: 6px; background: #fff; margin-top: 8px; }
+  #progress { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  #progress progress { flex: 1; max-width: 360px; accent-color: var(--accent); }
+  .stats { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); margin-bottom: 20px; }
+  .stat { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .stat .v { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .stat .l { font-size: 12px; color: var(--muted); }
+  .stat .s { font-size: 12px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  tr.grp td { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding-top: 14px; border-bottom: none; }
+  td.slots { display: flex; flex-wrap: wrap; gap: 4px; } td.slots select { flex: 1 1 160px; min-width: 140px; margin: 0; }
+  td.tiers { font-size: 12px; color: var(--accent); font-weight: 600; background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .profile { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; }
+  .profile.needed { border: 1.5px solid var(--warn); background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; }
+  h2 .opt { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  td.tag { font-size: 12px; } td.tag.avoir { color: var(--accent); font-weight: 600; }
+  #status { min-height: 1.4em; font-size: 13px; color: var(--muted); }
+  #status[data-kind=ok] { color: var(--ok); } #status[data-kind=err] { color: var(--err); }
+  .tablewrap { overflow-x: auto; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  td.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 22%, transparent); font-weight: 600; }
+  
+  .tablehost { position: relative; }
+  label.stack { display: block; } label.stack input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; }
+  .row-acts { position: absolute; display: none; gap: 4px; padding: 3px; border-radius: 8px; z-index: 3;
+    background: var(--panel); border: 1px solid var(--line); box-shadow: 0 3px 12px rgba(0,0,0,.25); }
+  .row-acts.on { display: flex; }
+  .row-acts button { padding: 4px 10px; font-size: 12px; }
+  th.act, td.act { display: none; }
+  @media (hover: none) { th.act, td.act { display: table-cell; } td.act .acts { display: flex; gap: 4px; } .row-acts { display: none !important; } }
+  #v-host { position: relative; flex: 1 1 auto; min-height: 30vh; display: flex; flex-direction: column; }
+  #v-host .v-grid { flex: 1 1 auto; min-height: 0; }
+  #v-body tr.sel td { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; }
+  a.cell-link { color: var(--accent); text-decoration: underline dotted; }
+  a.cell-link:hover { text-decoration: underline; }
+  th.virt, td.virt { background: color-mix(in srgb, var(--ok) 12%, transparent); font-weight: 600; }
+  .titlebar .logo { cursor: pointer; }
+  
+  .grid.two { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+  .card.files { display: grid; gap: 14px; align-content: start; }
+  .card.files h2 { margin-bottom: 0; }
+  .fblock { display: grid; gap: 6px; }
+  .fblock + .fblock { border-top: 1px solid var(--line); padding-top: 12px; }
+  .fblock h3, .pane h3 { margin: 0; font-size: 14px; }
+  .fblock .file { margin-top: 0; }
+  .pane { margin: 8px 0 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+  .pane ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+  .pane .sf { margin-top: 8px; } .pane .sf strong { display: block; }
+  .pane pre { margin: 4px 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; white-space: pre-wrap; word-break: break-all; font-size: 11px; }
+  #btn-help[aria-expanded="true"], #btn-dataq[aria-expanded="true"], #btn-support[aria-expanded="true"] { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  
+  .igrid { display: grid; gap: 3px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  .igrid .irow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .igrid .irow .dot { flex: none; }
+  .igrid .irow .lbl { color: var(--tone, var(--ink)); }
+  .igrid .irow.tone-neutral .lbl { color: var(--ink); }
+  .igrid .irow .cnt { color: var(--muted); }
+  .igrid .irow.ok { color: var(--ink); font-weight: 600; }
+  .igrid .cbx-pad { display: inline-block; width: 13px; flex: none; }
+  .igrid .irow.section { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .igrid .irow.section:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
+  .igrid .irow.tone-red, .igrid .irow.tone-orange, .igrid .irow.tone-yellow, .igrid .irow.tone-green { background: color-mix(in srgb, var(--tone) 12%, transparent); border-radius: 6px; padding: 2px 6px; margin: 1px 0; }
+  .igrid .irow.synth { margin: 2px 0 4px 21px; padding: 4px 10px; border-left: 3px solid var(--tone); background: color-mix(in srgb, var(--tone) 12%, transparent); font-weight: 600; color: var(--ink); border-radius: 0 6px 6px 0; }
+  
+  :root { --rec: #6a3fc8; } @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --rec: #b9a2ff; } } :root[data-theme="dark"] { --rec: #b9a2ff; }
+  td.rec { color: var(--rec); font-weight: 700; background: color-mix(in srgb, var(--rec) 16%, transparent); }
+  td.rec a.cell-link { color: var(--rec); }
+  .legend .sw.rec { background: color-mix(in srgb, var(--rec) 25%, transparent); border-color: var(--rec); }
+  
+  #busy-anim { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 900; width: 172px; padding: 10px 10px 8px; border-radius: 14px; display: none; flex-direction: column; align-items: center; gap: 6px;
+    background: radial-gradient(120% 90% at 55% 12%, #003b60 0%, #001a32 60%, #050a20 100%); box-shadow: 0 8px 28px rgba(0,0,0,.35); color: #b1f4ff; font: 600 12px/1.3 system-ui, sans-serif; text-align: center; }
+  #busy-anim.on { display: flex; }
+  #busy-anim .ring { position: relative; width: 150px; height: 150px; }
+  #busy-anim .ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  #busy-anim .ring .track { stroke: rgba(177,244,255,.15); }
+  #busy-anim .ring .bar { stroke: #ffc000; transition: stroke-dashoffset .25s ease; }
+  #busy-anim.indet .ring svg { animation: busyspin 1.2s linear infinite; }
+  @keyframes busyspin { to { transform: rotate(270deg); } }
+  #busy-anim .art { position: absolute; left: 50%; top: 50%; width: 118px; height: 118px; margin: -59px 0 0 -59px; border-radius: 50%; overflow: hidden; }
+  #busy-anim .art img { position: absolute; width: 150px; left: -16px; top: -116px; }
+  #busy-anim .pct { font-size: 15px; color: #fff; }
+  #busy-anim .left { font-size: 13px; color: #ffe064; font-variant-numeric: tabular-nums; }
+  #busy-anim .nums { display: flex; gap: 10px; align-items: baseline; }
+  table.dataq td, table.dataq th { white-space: normal; vertical-align: top; }
+  #busy-anim .lbl { max-width: 160px; color: #b1f4ff; font-weight: 500; }
+  
+  :root { --t-red: #c62828; --t-orange: #d35400; --t-yellow: #b08900; --t-green: #2e7d32; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --t-red: #ff8a80; --t-orange: #ffab66; --t-yellow: #f2cc4d; --t-green: #7bd99c; } }
+  :root[data-theme="dark"] { --t-red: #ff8a80; --t-orange: #ffab66; --t-yellow: #f2cc4d; --t-green: #7bd99c; }
+  .tone-red { --tone: var(--t-red); } .tone-orange { --tone: var(--t-orange); } .tone-yellow { --tone: var(--t-yellow); } .tone-green { --tone: var(--t-green); } .tone-neutral { --tone: var(--muted); }
+  .quality li.tone, label.wf.tone { color: var(--tone); }
+  .quality li.tone::marker { color: var(--tone); }
+  .quality li.tone .linkish, label.wf.tone > span:first-of-type { color: var(--tone); }
+  label.wf.tone::before, .quality li.tone > .linkish::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--tone); margin-right: 6px; vertical-align: 0; }
+  .quality li.tone-neutral, label.wf.tone-neutral, .quality li.tone-neutral .linkish, label.wf.tone-neutral > span:first-of-type { color: var(--ink); }
+  td.alerts { width: 1%; }
+  .dots { display: inline-flex; gap: 3px; }
+  .dot { width: 11px; height: 11px; box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 60%, #000 0%); border-radius: 50%; background: var(--tone); display: inline-block; }
+  .v-sum { margin: 4px 0 0; font-size: 13px; font-weight: 600; }
+  details.howto { font-size: 12px; color: var(--muted); }
+  details.howto summary { cursor: pointer; }
+  details.howto p { margin: 4px 0; color: var(--ink); }
+  details.howto pre { margin: 4px 0; padding: 6px 8px; background: var(--bg, rgba(0,0,0,.04)); border: 1px solid var(--line); border-radius: 6px; white-space: pre-wrap; word-break: break-all; font-size: 11px; }
+  #preview-frame { width: 100%; height: 80vh; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .prevhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .legend { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; background: var(--warn-bg); border: 1px solid var(--warn); vertical-align: -1px; }
+</style>
+</head>
+<body>
+<div id="splash" role="dialog" aria-label="Chargement de l’application" tabindex="-1">
+  <img src="splash.svg" alt="BL RES GEN" class="splash-art">
+  <div class="splash-ver" id="splash-ver"></div>
+  <div class="splash-hint">Cliquer pour continuer</div>
+</div>
+<header>
+  <div class="titlebar"><img src="icons/icon-96.png" alt="Rejouer l’animation" title="Rejouer l’animation" class="logo" id="logo" width="36" height="36" tabindex="0" role="button"><h1 id="app-title">BL RES GEN</h1>
+    <button type="button" id="version" class="version" title="Vérifier si une mise à jour est disponible">v…</button></div>
+  <div id="update-bar" class="update-bar" hidden role="alert">
+    <span id="update-text">Nouvelle version disponible.</span>
+    <button type="button" id="update-apply">Appliquer et recharger</button>
+    <button type="button" class="ghost" id="update-later">Plus tard</button>
+  </div>
+  <p id="app-subtitle">Générateur de BL Résilient</p>
+</header>
+<main>
+  <div class="grid two">
+    <div class="card files">
+      <h2>Fichiers</h2>
+      <div class="fblock">
+        <h3>1 · Template PDF <span class="opt">documents sans tiers</span></h3>
+        <div class="drop small" id="drop-tpl" tabindex="0" role="button" aria-label="Choisir le template PDF">
+        <strong>Déposer le template</strong>ou cliquer pour parcourir
+      </div>
+      <input type="file" id="in-tpl" accept="application/pdf,.pdf" hidden>
+      <div class="file">Actuel : <span id="tpl-name">aucun</span></div>
+      <details>
+        <summary>Polices (optionnel) — <span id="font-name"></span></summary>
+        <label>ArialMT régulière (.ttf)<input type="file" id="in-font-reg" accept=".ttf,.otf"></label>
+        <label>Arial Bold (.ttf)<input type="file" id="in-font-bold" accept=".ttf,.otf"></label>
+        <button type="button" class="ghost" id="btn-font-reset">Revenir à Helvetica</button>
+      </details>
+      <button type="button" class="ghost" id="btn-forget" style="margin-top:8px">Effacer le template de ce navigateur</button>
+      </div>
+      <div class="fblock">
+        <h3>2 · Fichier tiers <span class="opt">optionnel</span></h3>
+        <div class="drop small" id="drop-tiers" tabindex="0" role="button" aria-label="Choisir le fichier tiers">
+        <strong>Déposer le fichier tiers</strong>articles émis pour le compte d'un tiers
+      </div>
+      <input type="file" id="in-tiers" accept=".csv,.txt,.tsv,.xlsx,.xls,text/csv" hidden>
+      <div class="file">Actuel : <span id="tiers-name">aucun (pas de gestion des tiers)</span></div>
+      <button type="button" class="ghost" id="btn-tiers-clear" hidden style="margin-top:8px">Retirer le fichier tiers</button>
+      </div>
+      <div class="fblock">
+        <h3>3 · Données de ventes</h3>
+        <div class="drop small" id="drop-xls" tabindex="0" role="button" aria-label="Choisir le fichier de ventes">
+        <strong>Déposer l'export .csv ou .xlsx</strong>ou cliquer pour parcourir
+      </div>
+      <input type="file" id="in-xls" accept=".csv,.txt,.tsv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+      <div class="file">Actuel : <span id="xls-name">aucun</span></div>
+      <p class="hint">Le fichier est d'abord analysé (structure, qualité, valeurs disponibles) ; vous choisissez ensuite les lignes à traiter.</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>4 · Paramètres</h2>
+      <div class="row2b">
+        <label>Regroupement (min)<input type="number" id="set-window" min="1" step="1"></label>
+        <label>Fuseau des horodatages<input type="text" id="set-tz" spellcheck="false"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="set-shipping"> Ligne « Frais de port - offerts » dans les PDF</label>
+      <label class="check"><input type="checkbox" id="set-json"> Inclure les JSON dans le zip des PDF</label>
+      <label class="check"><input type="checkbox" id="set-omit"> JSON : omettre les champs non valorisés</label>
+      <div class="row2b" id="force-wrap">
+        <label class="check" style="margin:0"><input type="checkbox" id="set-force"> JSON : Force Type</label>
+        <select id="set-force-type" aria-label="Type imposé" disabled></select>
+      </div>
+      <label class="check" title="Raison sociale, adresse du client et libellés d'articles remplacés dans les PDF et les JSON ; montants, quantités, SIRET et codes inchangés"><input type="checkbox" id="set-anon"> Anonyme : raison sociale, adresse client et libellés d’articles remplacés (PDF et JSON)</label>
+      <label class="stack">URL « Check » (fiche client) <span class="opt">profil</span><input type="url" id="set-cust-url" spellcheck="false" placeholder="https://annuaire-entreprises.data.gouv.fr/etablissement/{siret}"></label>
+      <p class="hint" style="margin-top:2px">Vide = annuaire des entreprises (par SIRET). Variables : {siret}, {code}, {date} (AAAA-MM-JJ), {dateFr} (JJ/MM/AAAA), {yyyymmdd}. Bouton « Check » au survol des documents.</p>
+      <fieldset class="wm">
+        <legend><label class="check"><input type="checkbox" id="wm-on"> Filigrane sur les PDF</label></legend>
+        <input type="text" id="wm-text" placeholder="Texte du filigrane (ex. DUPLICATA)" aria-label="Texte du filigrane">
+        <div class="wm-row">
+          <label class="inline">Couleur <input type="color" id="wm-color" value="#c00000"></label>
+          <label class="inline grow">Opacité <input type="range" id="wm-opacity" min="0.03" max="0.3" step="0.01" value="0.12"> <span id="wm-opacity-val" class="opt">12 %</span></label>
+        </div>
+      </fieldset>
+      <fieldset class="wm mxbox">
+        <legend>Rapprochement des traces</legend>
+        <button type="button" class="secondary" id="btn-matching">Rapprochement des traces</button>
+        <p class="hint" id="mx-last" style="margin:6px 0 0"></p>
+      </fieldset>
+    </div>
+  </div>
+
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="progress" hidden><span id="progress-label"></span><progress id="progress-bar"></progress></div>
+  <div id="busy-anim" role="status" aria-live="polite"><div class="ring"><svg viewBox="0 0 150 150" width="150" height="150" aria-hidden="true"><circle class="track" cx="75" cy="75" r="68" fill="none" stroke-width="7"/><circle class="bar" cx="75" cy="75" r="68" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="427.26" stroke-dashoffset="427.26"/></svg><div class="art"><img src="splash.svg" alt=""></div></div><div class="nums"><span class="pct" id="busy-pct"></span><span class="left" id="busy-left"></span></div><div class="lbl" id="busy-lbl"></div></div>
+
+
+  <section id="struct-section">
+    <div class="actions">
+      <h2 style="margin:0 auto 0 0">Gestion des paramètres</h2>
+      <button type="button" class="ghost" id="btn-help" aria-controls="help-pane" aria-expanded="false">Aide</button>
+      <button type="button" class="ghost" id="btn-dataq" aria-controls="dataq-pane" aria-expanded="false">DataQ</button>
+      <button type="button" class="ghost" id="btn-support" aria-controls="support-pane" aria-expanded="false">Fichiers support</button>
+      <button type="button" class="ghost" id="btn-struct-toggle" aria-controls="struct-body" aria-expanded="true">Replier</button>
+    </div>
+    <p id="struct-state" class="struct-state"></p>
+    <div id="help-pane" class="pane" hidden><h3>Aide</h3><div id="help-body"></div></div>
+    <div id="dataq-pane" class="pane" hidden><h3>DataQ — étapes de correction des données</h3><div id="dataq-body"></div></div>
+    <div id="support-pane" class="pane" hidden><h3>Fichiers support</h3><div id="support-body"></div></div>
+    <div id="struct-body">
+      <div class="profile">
+        <div class="hint">Profil de correspondance (privé) : <span id="profile-info"></span></div>
+        <div class="actions" style="margin-top:6px">
+          <button type="button" class="ghost" id="btn-profile-embedded">Ouvrir le profil intégré</button>
+          <button type="button" class="ghost" id="btn-profile-import">Importer un profil</button>
+          <button type="button" class="ghost" id="btn-profile-export">Exporter le profil</button>
+        </div>
+        <input type="file" id="in-profile" accept=".json,application/json" hidden>
+      </div>
+      <div id="struct-map" hidden>
+        <p id="struct-meta" class="meta"></p>
+        <p id="struct-mode" class="meta"></p>
+        <div class="actions" style="justify-content:flex-end"><button type="button" class="ghost" id="btn-map-reset">Rétablir la détection automatique</button></div>
+    <div class="tablewrap">
+      <table class="map">
+        <thead><tr><th>Champ</th><th>Colonne</th><th>Exemple</th><th>État</th></tr></thead>
+        <tbody id="map-body"></tbody>
+      </table>
+    </div>
+      </div>
+      <p id="struct-empty" class="meta">Chargez un fichier de ventes pour afficher la correspondance des colonnes.</p>
+      <div class="actions" style="justify-content:flex-end"><button type="button" class="ghost" id="btn-struct-fold">Replier le panneau</button></div>
+    </div>
+  </section>
+
+  <section id="tiers-section">
+    <div class="actions">
+      <h2 style="margin:0 auto 0 0">Gestion des tiers</h2>
+      <button type="button" class="ghost" id="btn-tiers-map-reset" hidden>Rétablir la détection automatique</button>
+    </div>
+    <p id="tiers-empty" class="meta">Aucun fichier tiers chargé : pas de gestion des tiers.</p>
+    <div id="tiers-body" hidden>
+    <p id="tiers-meta" class="meta"></p>
+    <details>
+      <summary>Correspondance des colonnes</summary>
+      <div class="tablewrap">
+        <table class="map">
+          <thead><tr><th>Champ</th><th>Colonne</th><th>Exemple</th><th>État</th></tr></thead>
+          <tbody id="tiers-map-body"></tbody>
+        </table>
+      </div>
+    </details>
+    <ul id="tiers-quality" class="quality"></ul>
+    </div>
+  </section>
+
+  <section id="refs-section" class="refs">
+    <h2>Référentiels <span class="opt">optionnels</span></h2>
+      <div class="ref" data-kind="cust">
+        <h3>Code client → SIRET</h3>
+        <div class="drop small" id="drop-ref-cust" tabindex="0" role="button" aria-label="Choisir le fichier Code client → SIRET">
+          <strong>Déposer le CSV</strong>code client, SIRET (colonnes repérées par l’en-tête)
+        </div>
+        <input type="file" id="in-ref-cust" accept=".csv,.txt,text/csv" hidden>
+        <div class="ref-meta" id="ref-cust-need"></div>
+        <div class="file">Cache : <span id="ref-cust-cache">0 entrée</span></div>
+        <div class="actions">
+          <button type="button" class="ghost" id="btn-ref-cust-again" hidden>Chercher à nouveau</button>
+          <button type="button" class="ghost" id="btn-ref-cust-clear" hidden>Vider le cache</button>
+        </div>
+      </div>
+      <div class="ref" data-kind="siret">
+        <h3>SIRET → raison sociale, adresse</h3>
+        <div class="drop small" id="drop-ref-siret" tabindex="0" role="button" aria-label="Choisir le fichier SIRET → raison sociale, adresse">
+          <strong>Déposer le CSV</strong>IdSIRET, Nom, LigneAdresse1…3, Localite, CP, CodePays
+        </div>
+        <input type="file" id="in-ref-siret" accept=".csv,.txt,text/csv" hidden>
+        <div class="ref-meta" id="ref-siret-need"></div>
+        <div class="file">Cache : <span id="ref-siret-cache">0 entrée</span></div>
+        <div class="actions">
+          <button type="button" class="ghost" id="btn-ref-siret-again" hidden>Chercher à nouveau</button>
+          <button type="button" class="ghost" id="btn-ref-siret-clear" hidden>Vider le cache</button>
+        </div>
+      </div>
+      <div class="ref" data-kind="siren">
+        <h3>Statut des SIREN <span class="opt">public / EJ</span></h3>
+        <div class="drop small" id="drop-siren" tabindex="0" role="button" aria-label="Choisir le fichier des SIREN">
+          <strong>Déposer le CSV</strong>SIREN;public;EJ — ou IdSIREN;EJ (public = 1)
+        </div>
+        <input type="file" id="in-siren" accept=".csv,.txt,text/csv" hidden>
+        <textarea id="siren-text" rows="3" spellcheck="false" placeholder="ou coller des lignes : 123456789;1;0 ou 123456789;1" aria-label="SIREN à importer (siren,public,ej)"></textarea>
+        <label class="check"><input type="checkbox" id="siren-replace"> Effacer l’existant (sinon : ajout à l’existant)</label>
+        <div class="actions">
+          <button type="button" class="ghost" id="btn-siren-paste">Importer la saisie</button>
+          <button type="button" class="ghost" id="btn-siren-export" hidden>Exporter en clair</button>
+          <button type="button" class="ghost" id="btn-siren-clear" hidden>Vider l’index</button>
+        </div>
+        <div class="file">Index : <span id="siren-count">vide</span></div>
+        <div class="ref-meta" id="siren-meta"></div>
+      </div>
+      <div class="ref" data-kind="api">
+        <h3>API Recherche d’entreprises <span class="opt">en ligne</span></h3>
+        <p class="hint" style="margin:0">Envoie à l’API publique recherche-entreprises.api.gouv.fr les raisons sociales + codes postaux ou les SIRET concernés (aucune autre donnée). Résultat retenu seulement s’il est unique ; résultats en cache.</p>
+        <div class="ref-meta" id="api-need"></div>
+        <div class="actions">
+          <button type="button" class="ghost" id="btn-api-name">3 · SIRET par raison sociale + CP</button>
+          <button type="button" class="ghost" id="btn-api-loose">4 · SIRET par raison sociale ou adresse seule</button>
+          <button type="button" class="ghost" id="btn-api-siret">6 · Adresses par SIRET</button>
+          <button type="button" class="ghost stop-ok" id="btn-api-stop" hidden>Arrêter</button>
+          <button type="button" class="ghost" id="btn-api-clear">Vider le cache API</button>
+        </div>
+        <div class="file">Cache : <span id="api-cache">0 entrée</span></div>
+      </div>
+  </section>
+
+  <section id="analysis-section" hidden>
+    <h2>Analyse des données</h2>
+    <ul id="struct-quality" class="igrid"></ul>
+  </section>
+
+  <section id="filters-section" hidden>
+    <h2>Filtres</h2>
+    <p id="filters-hint" class="meta"></p>
+    <div class="filters">
+      <label>Codes client <span class="opt">séparés par des virgules</span>
+        <input type="text" id="f-clients" list="dl-clients" autocomplete="off" spellcheck="false">
+        <div class="chips" id="chips-clients"></div>
+      </label>
+      <label>SIRET ou SIREN <span class="opt">séparés par des virgules</span>
+        <input type="text" id="f-sirets" autocomplete="off" spellcheck="false" inputmode="numeric">
+      </label>
+      <label id="f-entites-wrap">Codes entité <span class="opt">séparés par des virgules</span>
+        <input type="text" id="f-entites" list="dl-entites" autocomplete="off" spellcheck="false">
+        <div class="chips" id="chips-entites"></div>
+      </label>
+      <label id="f-paymodes-wrap">Modes de règlement <span class="opt">présent dans l'une des colonnes 1, 2 ou 3</span>
+        <input type="text" id="f-paymodes" list="dl-paymodes" autocomplete="off" spellcheck="false">
+        <div class="chips" id="chips-paymodes"></div>
+      </label>
+      <div class="row2b">
+        <label>Tiers<select id="f-tiers"><option value="all">Tous les documents</option><option value="with">Avec tiers</option><option value="without">Sans tiers</option></select></label>
+        <label>Remise<select id="f-remise"><option value="all">Tous les documents</option><option value="with">Avec remise</option><option value="without">Sans remise</option></select></label>
+        <label>Tri des données<select id="f-sort"><option value="key">Entité · session · lot · relevé</option><option value="date">Entité · date · heure</option></select></label>
+        <label>Fichier SIRET → adresse<select id="f-refchk"><option value="all">Tous les documents</option><option value="ok">OK (présent)</option><option value="ko">KO (absent)</option><option value="unknown">Non vérifié</option></select></label>
+        <label>Statut SIREN<select id="f-siren"><option value="all">Tous les documents</option><option value="public">Public</option><option value="public_ej">Public avec EJ</option><option value="private">Privé</option><option value="unknown">Non classé</option></select></label>
+      </div>
+      <div class="row2b">
+        <label>Du<input type="date" id="f-from"></label>
+        <label>Au<input type="date" id="f-to"></label>
+      </div>
+      <div class="row2b">
+        <label>Ligne de départ <span class="opt">dans la sélection triée</span><input type="number" id="f-start" min="1" step="1" placeholder="1"></label>
+        <label>Nombre de documents <span class="opt">vide = tous</span><input type="number" id="f-count" min="1" step="1"></label>
+      </div>
+    </div>
+    <p class="hint">Lignes triées selon « Tri des données » (entité, puis identifiant d’opération ou date et heure). Départ : si la ligne de départ est la première d’un document, on commence par lui ; sinon (la ligne précédente appartient au même document) on commence au document suivant. Le nombre compte les documents générés (après les filtres ci-dessous, hors documents en échec) ; les documents d’une même opération restent ensemble.</p>
+    <div id="f-warnings-wrap" class="warnings" hidden>
+      <div class="hint">Anomalies et informations (même grille que l’analyse des données) — décocher pour écarter les <strong>documents</strong> qui contiennent ces lignes (un document partiel serait faux) :</div>
+      <ul id="f-warnings" class="igrid"></ul>
+    </div>
+    <datalist id="dl-clients"></datalist><datalist id="dl-entites"></datalist><datalist id="dl-paymodes"></datalist>
+    <div class="force-banner" hidden></div>
+    <div class="actions">
+      <button type="button" class="ghost" id="btn-clear">Effacer les filtres</button>
+      <span style="margin-right:auto"></span>
+      <button type="button" class="secondary" id="btn-all-lines">Tout le fichier</button>
+      <button type="button" class="secondary" id="btn-next-batch" hidden>Lot suivant</button>
+      <label class="inline" for="set-case" title="Lettres non accentuées, chiffres et + - * / = : ; , . ! ? # &amp; @ | ( ) [ ] _ ; 40 caractères au plus ; vide : valeur par défaut">Case number&nbsp;<input type="text" id="set-case" maxlength="40" autocomplete="off" spellcheck="false" style="width:16em"></label>
+      <button type="button" id="btn-apply">Appliquer les filtres</button>
+    </div>
+    <div class="chain">
+      <span class="hint" style="margin:0">Enchaîner les lots : la sélection (ligne de départ, nombre de documents — vide = jusqu'à la fin) est découpée en fichiers de « Documents par fichier » (A, B, C…), puis un rapport global.</span>
+      <div class="actions">
+        <label class="inline">Format <select id="chain-format"><option value="pdf">PDF (.zip)</option><option value="json">JSON (.zip)</option><option value="jsonl">JSONL (.zip)</option><option value="jsonarray">JSON tableau (.zip)</option></select></label>
+        <label class="inline" title="Taille de chaque fichier produit par l'enchaînement (opérations entières)">Documents par fichier <input type="number" id="chain-size" min="1" step="1" value="2000" style="width:7em;margin-left:6px"></label>
+        <button type="button" class="secondary" id="btn-chain">Enchaîner les lots</button>
+        <button type="button" class="secondary" id="btn-chain-stop" hidden>Arrêter après ce lot</button>
+        <span id="chain-status" class="meta" style="margin:0"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="inv-section" hidden>
+    <h2>Synthèse et liste des données</h2>
+    <div class="force-banner" hidden></div>
+    <div id="stats" class="stats"></div>
+    <div class="actions">
+      <h3 style="margin:0 auto 0 0">Documents</h3>
+      <select id="exp-codes" aria-label="Codes à exporter" style="width:auto"><option value="customer">Codes client</option><option value="siret">SIRET</option><option value="site">Codes site</option><option value="order">orderId</option></select>
+      <button class="ghost" id="btn-exp-codes" disabled title="Liste des documents affichés (filtres appliqués) : chaque code une seule fois">Exporter les codes</button>
+      <select id="gen-format" aria-label="Format de génération" style="width:auto"><option value="pdf">PDF (.zip)</option><option value="merged">PDF unique</option><option value="json">JSON (.zip)</option><option value="jsonl">JSONL (.zip)</option><option value="jsonarray">JSON tableau (.zip)</option><option value="report">Rapport (.csv)</option></select>
+      <button id="btn-generate" disabled>Générer</button>
+    </div>
+    <div class="tablehost" id="inv-host">
+    <div id="row-acts" class="row-acts" role="toolbar" aria-label="Actions du document"><button type="button" data-a="pdf">PDF</button><button type="button" class="secondary" data-a="json">JSON</button><button type="button" class="secondary" data-a="check">Check</button></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Type</th><th title="Anomalies : rouge, orange, jaune, vert">Alertes</th><th>N° document</th><th>Date</th><th>Client</th><th>Code client</th><th>Entité / site</th><th>Tiers</th><th>SIRET</th><th title="Présence du SIRET dans le fichier SIRET → raison sociale, adresse ; clic : annuaire Peppol">Actif</th><th>CP ville</th>
+          <th class="num">Lignes</th><th class="num">Remises</th><th class="num">TTC</th><th class="act" aria-label="Actions"></th>
+        </tr></thead>
+        <tbody id="inv-body"></tbody>
+      </table>
+    </div>
+    </div>
+    <p id="table-note" class="meta"></p>
+    <div class="legend"><span class="sw"></span> Avertissement (généré) · <span class="sw rec"></span> Donnée récupérée (référentiel, API, complétion) · <span class="sw err"></span> Erreur : document en échec, non généré (raison sociale ou adresse absente, erreur de génération). Un clic sur une ligne affiche ses lignes source ; au survol d’une ligne : PDF, JSON et Check (si l’URL est paramétrée), dans le tiers de la ligne où se trouve le pointeur.<br>
+      Alertes : <span class="dot tone-red"></span> code client ou SIRET absent / incorrect · <span class="dot tone-orange"></span> adresse, divergences, montant réglé · <span class="dot tone-yellow"></span> référentiels, opérations partagées, annulations sans contrepartie · <span class="dot tone-green"></span> informations (EJ…) · <span class="dot tone-neutral"></span> autres.</div>
+  </section>
+
+  <section id="preview" hidden>
+    <div class="prevhead"><h2 id="preview-title" style="margin:0"></h2><span><button id="btn-preview-dl">Télécharger le PDF</button> <button class="ghost" id="btn-preview-json">JSON</button> <button class="ghost" id="btn-close-preview">Fermer</button></span></div>
+    <iframe id="preview-frame" title="Aperçu de la facture"></iframe>
+  </section>
+  <section id="matching-view" hidden>
+    <div class="actions" style="margin-bottom:8px"><h2 style="margin:0 auto 0 0">Rapprochement des rapports et des traces</h2><button type="button" class="ghost" id="mx-back">← Retour à la génération</button></div>
+    <details class="mx-help" id="mx-help" open>
+      <summary>Principe du rapprochement</summary>
+      <p><strong>Principe.</strong> Le rapport de génération (rapport.csv d’un zip ou rapport global d’enchaînement) est complété par les traces de traitement (fichiers JSON) déposées successivement.</p>
+      <ol>
+        <li>Chargez le rapport (éventuellement déjà complété : le rapprochement reprend où il en était).</li>
+        <li>Déposez un ou plusieurs fichiers de traces, autant de fois que nécessaire.</li>
+        <li>Chaque trace est rapprochée par <code>orderId</code> ; caseNumber et SIRET doivent correspondre au rapport (SIRET contrôlé quand la trace le contient) : au premier écart, vous choisissez de refuser le fichier ou d’ignorer les traces en écart.</li>
+        <li>Plusieurs traces pour un document : la première trace de succès est retenue (elle remplace les erreurs), sinon la dernière erreur ; si elles diffèrent, la colonne <code>multi_trace</code> les liste (caseNumber-date séparés par « | »).</li>
+        <li>Exportez le résultat : tout (à recharger plus tard), succès, erreurs (non générés compris), sans trace, ou traces hors rapport.</li>
+      </ol>
+      <p class="hint" id="mx-autosave"></p>
+    </details>
+    <div class="grid two">
+      <div class="card">
+        <h3>1 · Rapport de génération</h3>
+        <div class="drop small" id="mx-drop-report" tabindex="0" role="button" aria-label="Choisir le rapport"><strong>Déposer le rapport (.csv)</strong>ou cliquer pour parcourir</div>
+        <input type="file" id="mx-in-report" accept=".csv,text/csv" hidden>
+        <div class="file">Actuel : <span id="mx-report-name">aucun</span></div>
+      </div>
+      <div class="card">
+        <h3>2 · Traces de traitement</h3>
+        <div class="drop small" id="mx-drop-traces" tabindex="0" role="button" aria-label="Choisir des fichiers de traces"><strong>Déposer des traces (.json)</strong>ou cliquer pour parcourir — plusieurs fichiers possibles</div>
+        <input type="file" id="mx-in-traces" multiple hidden>
+        <ul id="mx-files" class="mx-files"></ul>
+      </div>
+    </div>
+    <ul id="mx-msg" class="mx-msg"></ul>
+    <div id="mx-gaps" class="mx-gaps" hidden></div>
+    <div id="mx-out" hidden>
+      <div class="actions" style="margin:10px 0">
+        <h3 style="margin:0 auto 0 0">Synthèse</h3>
+        <button type="button" class="secondary" id="mx-btn-charts" aria-expanded="false">Graphiques</button>
+        <select id="mx-export-kind" aria-label="Lignes à exporter" style="width:auto"><option value="all">Tout</option><option value="success">Succès</option><option value="error">Erreurs (non générés compris)</option><option value="none">Sans trace</option><option value="outside">Traces hors rapport</option></select>
+        <button type="button" id="mx-export">Exporter</button>
+      </div>
+      <div id="mx-synth" class="mx-synth"></div>
+      <div id="mx-charts" class="mx-charts" hidden></div>
+      <div class="actions" style="margin:12px 0 6px">
+        <h3 style="margin:0 auto 0 0">Documents</h3>
+        <select id="mx-mode" aria-label="Colonnes affichées" style="width:auto"><option value="simple">Colonnes : simple</option><option value="state">Colonnes : state (+ avertissements)</option><option value="full">Colonnes : full (tout)</option></select>
+        <select id="mx-f-cat" aria-label="Catégorie" style="width:auto"><option value="">Toutes les lignes</option><option value="success">Succès</option><option value="error">Erreurs (non générés compris)</option><option value="none">Sans trace</option></select>
+        <select id="mx-f-code" aria-label="Code d’erreur" style="width:auto"></select>
+        <select id="mx-f-file" aria-label="Fichier" style="width:auto"></select>
+        <input type="search" id="mx-f-text" placeholder="Rechercher…" style="width:14em">
+      </div>
+      <div id="mx-chip" class="mx-chip" hidden><span></span><button type="button" class="tiny ghost" id="mx-chip-x" aria-label="Retirer le filtre du graphique">×</button></div>
+      <div class="tablewrap"><table class="mx-table"><thead id="mx-head"></thead><tbody id="mx-body"></tbody></table></div>
+      <div class="actions" style="margin-top:6px"><span id="mx-page" class="meta" style="margin:0 auto 0 0"></span><button type="button" class="ghost" id="mx-prev">Précédent</button><button type="button" class="ghost" id="mx-next">Suivant</button></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="viewer" aria-labelledby="v-title">
+  <div class="v-top">
+    <div class="v-headline"><h2 id="v-title"></h2><button type="button" class="ghost" id="v-close">Fermer</button></div>
+    <p class="meta"><span id="v-meta"></span> <span id="v-note"></span></p>
+    <p class="v-sum" id="v-sum" hidden></p>
+    <div class="v-tools">
+      <input type="search" id="v-search" placeholder="Rechercher dans les lignes…" aria-label="Rechercher">
+      <label class="inline">Contexte
+        <select id="v-context"><option value="0">aucun</option><option value="1">±1</option><option value="2">±2</option><option value="5">±5</option><option value="10">±10</option></select>
+      </label>
+      <button type="button" class="ghost" id="v-cols"></button>
+      <button type="button" class="ghost" id="v-copy-cust" hidden title="Codes client distincts des lignes concernées, un par ligne">Copier les codes client</button>
+      <button type="button" class="ghost" id="v-copy-siret" hidden title="SIRET distincts des lignes concernées (valeurs telles que dans le fichier), un par ligne">Copier les SIRET</button>
+      <span class="spacer"></span>
+      <button type="button" class="ghost" id="v-prev">‹</button><span id="v-page" class="meta"></span><button type="button" class="ghost" id="v-next">›</button>
+    </div>
+    <p id="v-status" class="v-status" role="status" aria-live="polite"></p>
+    <p class="hint" id="v-hint"></p>
+  </div>
+  <div id="v-host">
+    <div id="v-acts" class="row-acts" role="toolbar" aria-label="Actions du document de la ligne"><button type="button" data-a="pdf">PDF</button><button type="button" class="secondary" data-a="json">JSON</button><button type="button" class="secondary" data-a="check">Check</button></div>
+    <div class="v-grid"><table class="csv"><thead id="v-head"></thead><tbody id="v-body"></tbody></table></div>
+  </div>
+  <div id="v-pdf" class="v-pdf" hidden>
+    <div class="v-headline"><strong id="v-pdf-title"></strong>
+      <span><button type="button" id="v-dl">Télécharger le PDF</button> <button type="button" class="secondary" id="v-json">JSON</button> <button type="button" class="secondary" id="v-cust" hidden>Check</button> <button type="button" class="ghost" id="v-pdf-close">Masquer</button></span></div>
+    <iframe id="v-frame" title="Aperçu du document"></iframe>
+  </div>
+</dialog>
+
+<dialog id="json-viewer" aria-labelledby="j-title">
+  <div class="v-top">
+    <div class="v-headline"><h2 id="j-title"></h2>
+      <span><button type="button" class="ghost" id="j-expand">Tout déplier</button> <button type="button" class="ghost" id="j-collapse">Tout replier</button>
+      <label class="inline check-inline"><input type="checkbox" id="j-omit"> Omettre les champs non valorisés</label>
+      <button type="button" class="ghost" id="j-mode">Texte brut</button> <button type="button" class="ghost" id="j-copy">Copier</button>
+      <button type="button" id="j-dl">Télécharger</button> <button type="button" class="ghost" id="j-close">Fermer</button></span></div>
+  </div>
+  <div class="j-body"><div id="j-tree" class="j-tree"></div><pre id="j-raw" class="j-raw" hidden></pre></div>
+  <p id="j-meta" class="v-status j-foot"></p>
+</dialog>
+
+<dialog id="case-confirm" aria-labelledby="case-confirm-title">
+  <form method="dialog" class="unlock">
+    <h2 id="case-confirm-title">Case number non renseigné</h2>
+    <p>Aucun « Case number » n'est saisi : les JSON porteront la valeur par défaut <code>NoCase</code>.</p>
+    <div class="actions" style="justify-content:flex-end"><button value="edit" class="ghost stop-ok">Saisir un Case number</button><button value="ok" id="case-confirm-ok" class="stop-ok">Continuer</button></div>
+  </form>
+</dialog>
+<dialog id="mx-ask" aria-labelledby="mx-ask-title">
+  <form method="dialog" class="unlock"><h2 id="mx-ask-title"></h2><p id="mx-ask-text"></p><div class="actions" style="justify-content:flex-end" id="mx-ask-btns"></div></form>
+</dialog>
+<dialog id="mx-pdf" aria-labelledby="mx-pdf-title">
+  <div class="actions" style="padding:8px 10px"><h2 id="mx-pdf-title" style="margin:0 auto 0 0;font-size:14px"></h2><a id="mx-pdf-open" class="ghostlink" href="#" target="_blank" rel="noopener">Ouvrir dans un onglet</a><button type="button" class="ghost stop-ok" id="mx-pdf-close">Fermer</button></div>
+  <iframe id="mx-pdf-frame" title="PDF" src="about:blank"></iframe>
+</dialog>
+<dialog id="force-confirm" aria-labelledby="force-confirm-title">
+  <form method="dialog" class="unlock" id="force-form">
+    <h2 id="force-confirm-title">Force Type</h2>
+    <p id="force-text"></p>
+    <input type="text" id="force-input" autocomplete="off" spellcheck="false" aria-label="activityType à saisir">
+    <div class="actions" style="justify-content:flex-end"><button value="cancel" class="ghost stop-ok" formnovalidate>Annuler</button><button value="ok" id="force-ok" class="stop-ok">Confirmer</button></div>
+  </form>
+</dialog>
+<dialog id="unlock" aria-labelledby="unlock-title">
+  <form id="unlock-form" class="unlock">
+    <h2 id="unlock-title">Profil intégré</h2>
+    <p class="hint">Saisissez la clé.</p>
+    <input type="password" id="unlock-key" autocomplete="off" spellcheck="false" placeholder="Clé" aria-label="Clé de déverrouillage" required>
+    <p id="unlock-msg" class="v-status"></p>
+    <div class="actions" style="justify-content:flex-end"><button type="button" class="ghost" id="unlock-cancel">Annuler</button><button type="submit">Ouvrir</button></div>
+  </form>
+</dialog>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="vendor/fontkit.umd.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/faker-fr.min.js"></script>
+<script src="version.js"></script>
+<script src="siren-index.js"></script>
+<script src="core.js"></script>
+<script src="app.js"></script>
+<script src="matching.js"></script>
+</body>
+</html>

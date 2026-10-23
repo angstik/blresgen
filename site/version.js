@@ -1,0 +1,1 @@
+self.APP_VERSION = {"version":"1.43.0","build":"a6d37b2","date":"2026-10-23"};
